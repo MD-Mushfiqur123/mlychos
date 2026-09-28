@@ -69,6 +69,8 @@ apt-get update
 apt-get install -y --no-install-recommends \
     linux-image-amd64 \
     live-boot \
+    live-config \
+    live-config-systemd \
     systemd-sysv \
     seatd \
     libgl1-mesa-dri \
@@ -85,6 +87,13 @@ apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-jetbrains-mono \
     sudo
+
+# Fix /etc/network/interfaces directory for live-boot init scripts
+mkdir -p /etc/network
+cat << 'NET' > /etc/network/interfaces
+auto lo
+iface lo inet loopback
+NET
 
 # Configure XZ compression for Initramfs (reduces initrd from 65MB to ~15MB)
 sed -i 's/COMPRESS=.*/COMPRESS=xz/' /etc/initramfs-tools/initramfs.conf
@@ -275,12 +284,12 @@ set menu_color_normal=white/black
 set menu_color_highlight=black/white
 
 menuentry "MlychOS 1.0 (Sovereign Minimalist Debian - 64-bit)" {
-    linux /live/vmlinuz boot=live quiet splash
+    linux /live/vmlinuz boot=live components quiet splash
     initrd /live/initrd
 }
 
-menuentry "MlychOS 1.0 (Safe Mode / RAM Disk)" {
-    linux /live/vmlinuz boot=live toram
+menuentry "MlychOS 1.0 (Safe Mode / Verbose Boot)" {
+    linux /live/vmlinuz boot=live components
     initrd /live/initrd
 }
 EOF
