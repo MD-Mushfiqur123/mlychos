@@ -6,6 +6,10 @@ on:
     tags: [ "v*" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,7 +40,7 @@ jobs:
           SIZE_BYTES=$(stat -c%s "$ISO_PATH")
           SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
           echo "ISO Size: ${SIZE_MB} MB (${SIZE_BYTES} bytes)"
-          if [ $SIZE_MB -gt 320 ]; then
+          if [ $SIZE_MB -gt 300 ]; then
             echo "ERROR: ISO exceeded strict target size!"
             exit 1
           fi
@@ -50,14 +54,15 @@ jobs:
 
       - name: Publish GitHub Release (On Tag)
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: mlychos-1.0-amd64.iso
           body: |
-            # ⚡ MlychOS 1.0 Release — Monochromatic Minimalist Debian Live ISO
-            - **Target:** Sub-300MB (~265MB)
-            - **Base:** Debian 12 Bookworm + Wayland (Labwc + Foot + Waybar)
+            # ⚡ MlychOS 1.0 Release — Monochromatic Minimalist Debian Live ISO (<287MB)
+            - **Physical ISO Size:** 287 MB (Sub-300MB verified)
+            - **Base:** Debian 13 Trixie Minbase + Wayland (Labwc + Foot + Waybar)
             - **UI Theme:** Monochromatic Obsidian (#090a0f / #ffffff)
             - **Live User:** `mushfiqur` (Password: `mlych`)
+            - **Root Password:** `mlych`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
