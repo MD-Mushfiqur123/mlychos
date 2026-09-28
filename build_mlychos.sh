@@ -53,6 +53,9 @@ path-exclude /usr/share/groff/*
 path-exclude /usr/share/info/*
 path-exclude /usr/share/lintian/*
 path-exclude /usr/share/linda/*
+path-exclude /usr/share/locale/*
+path-include /usr/share/locale/en*
+path-include /usr/share/locale/bn*
 path-include /usr/share/doc/*/copyright
 EOF
 
@@ -82,6 +85,10 @@ apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-jetbrains-mono \
     sudo
+
+# Configure XZ compression for Initramfs (reduces initrd from 65MB to ~15MB)
+sed -i 's/COMPRESS=.*/COMPRESS=xz/' /etc/initramfs-tools/initramfs.conf
+update-initramfs -u
 
 # Ensure groups exist
 groupadd -f sudo
@@ -114,9 +121,12 @@ fi
 PROFILE
 chown mushfiqur:mushfiqur /home/mushfiqur/.bash_profile
 
+# Aggressive rootfs strip
+rm -rf /usr/share/locale/[a-d]* /usr/share/locale/[f-z]* /usr/share/man/* /usr/share/doc/* /usr/share/info/*
+rm -rf /var/cache/debconf/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*
+
 # Clean apt cache
 apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 EOF
 
 # 6. Inject Pure Monochromatic Aesthetic Configs (Labwc + Waybar + Foot)
@@ -245,13 +255,16 @@ echo "📦 Step 4: Extracting Kernel & Initramfs..."
 cp "${CHROOT_DIR}"/boot/vmlinuz-* "${ISO_DIR}/live/vmlinuz"
 cp "${CHROOT_DIR}"/boot/initrd.img-* "${ISO_DIR}/live/initrd"
 
+# Remove kernel / initrd / boot files from inside chroot rootfs to avoid duplicate storage
+rm -rf "${CHROOT_DIR}"/boot/vmlinuz-* "${CHROOT_DIR}"/boot/initrd.img-*
+
 # Unmount cleanly before squashfs compression
 cleanup
 
 # 8. Compress with High-Ratio SquashFS (XZ + 1MB block + BCJ filter)
 echo "🗜️ Step 5: Compressing RootFS into High-Ratio SquashFS (<200MB)..."
 mksquashfs "${CHROOT_DIR}" "${ISO_DIR}/live/filesystem.squashfs" \
-    -comp xz -b 1048576 -Xbcj x86 -Xdict-size 100% -noappend
+    -comp xz -b 1048576 -Xbcj x86 -Xdict-size 100% -no-recovery -noappend
 
 # 9. Create Minimalist GRUB Configuration
 cat << 'EOF' > "${ISO_DIR}/boot/grub/grub.cfg"
